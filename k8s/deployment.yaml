@@ -1,11 +1,10 @@
+# vote/kubernetes/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: vote
-  name: vote
+  name: vote-app
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: vote
@@ -15,8 +14,20 @@ spec:
         app: vote
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_vote
-        name: vote
+      - name: vote
+        image: mbeng44/vote-app:latest
         ports:
         - containerPort: 80
-          name: vote
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote-service
+spec:
+  selector:
+    app: vote
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
