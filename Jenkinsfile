@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/Primus-Learning/vote.git'
+                git 'https://github.com/mbeng44/vote.git'
             }
         }
         stage('Build') {
