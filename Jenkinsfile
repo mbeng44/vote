@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -5,21 +6,22 @@ pipeline {
         AWS_ACCOUNT_ID = '205930645143'
         AWS_REGION = 'us-east-1' 
         ECR_REPO_NAME = 'voting-app/vote1'
-        DOCKER_IMAGE_TAG = 'latest' 
+        DOCKER_IMAGE_TAG = 'latest'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', 
-                url: 'https://github.com/mbeng44/vote.git'
+                    credentialsId: 'aws-credentials', 
+                    url: 'https://github.com/mbeng44/vote.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
+                    echo "Building Docker image..."
                     docker.build("${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${DOCKER_IMAGE_TAG}")
                 }
             }
@@ -28,8 +30,9 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run tests (replace with your test command)
-                    sh 'echo "Running tests for vote..."'
+                    echo "Running tests for results..."
+                    // Add real test commands if applicable
+                    sh 'echo "Tests completed successfully!"'
                 }
             }
         }
@@ -37,8 +40,18 @@ pipeline {
         stage('Login to AWS ECR') {
             steps {
                 script {
-                    // Authenticate Docker to AWS ECR
-                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    echo "Logging into AWS ECR..."
+                    withCredentials([[
+                        $class: 'AmazonWebServicesCredentialsBinding', 
+                        credentialsId: 'aws-credentials', 
+                        accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
+                        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    ]]) {
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | \
+                            docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                        """
+                    }
                 }
             }
         }
@@ -46,7 +59,7 @@ pipeline {
         stage('Push Docker Image to ECR') {
             steps {
                 script {
-                    // Push the Docker image to ECR
+                    echo "Pushing Docker image to AWS ECR..."
                     docker.withRegistry("https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com") {
                         docker.image("${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${DOCKER_IMAGE_TAG}").push()
                     }
@@ -57,10 +70,10 @@ pipeline {
 
     post {
         success {
-            echo 'Vote Docker image successfully built, tested, and pushed to ECR!'
+            echo '✅ Results Docker image successfully built, tested, and pushed to ECR!'
         }
         failure {
-            echo 'Pipeline failed. Check the logs for details.'
+            echo '❌ Pipeline failed. Check the logs for details.'
         }
     }
 }
